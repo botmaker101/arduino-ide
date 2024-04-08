@@ -1,0 +1,64 @@
+// Include the necessary libraries
+#include <Arduino.h>
+#include <SoftwareSerial.h>
+
+// Define analog pins for X, Y, and Z outputs of the accelerometer
+const int xPin = A0; // Connect X output of accelerometer to analog pin A0
+const int yPin = A1; // Connect Y output of accelerometer to analog pin A1
+const int zPin = A2; // Connect Z output of accelerometer to analog pin A2
+const int muscleSensorPin = A3;
+const int buzzerPin = 9;
+
+// Define threshold values for muscle sensor activation
+const int threshold = 900;
+
+// Define HM-10 Bluetooth module pins
+const int bluetoothTx = 2; // Transmit pin of HM-10 connected to Arduino's digital pin 2
+const int bluetoothRx = 3; // Receive pin of HM-10 connected to Arduino's digital pin 3
+
+// Create a SoftwareSerial object to communicate with the HM-10 module
+SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
+
+void setup() {
+  Serial.begin(115200); // Initialize serial communication for debugging
+  bluetooth.begin(9600); // Initialize Bluetooth communication
+
+  // Set the buzzer pin as an output
+  pinMode(buzzerPin, OUTPUT);
+}
+
+void loop() {
+  // Read analog values from accelerometer pins
+  int xValue = analogRead(xPin);
+  int yValue = analogRead(yPin);
+  int zValue = analogRead(zPin);
+  
+  // Convert analog values to acceleration values (in m/s^2)
+  float accelerationX = map(xValue, 0, 1023, -300, 300) * 0.0039; // Sensitivity: 300 mV/g, 3.9mV/LSB
+  float accelerationY = map(yValue, 0, 1023, -300, 300) * 0.0039;
+  float accelerationZ = map(zValue, 0, 1023, -300, 300) * 0.0039;
+
+  // Format accelerometer data for transmission
+  String accelerometerData = "X:" + String(accelerationX) + " Y:" + String(accelerationY) + " Z:" + String(accelerationZ);
+
+  // Send accelerometer data via Bluetooth
+  bluetooth.println(accelerometerData);
+
+  // Read the value from the muscle sensor
+  int sensorValue = analogRead(muscleSensorPin);
+
+  // Print the sensor value to the serial monitor
+  Serial.println(sensorValue);
+
+  // Check if the sensor value is above the threshold
+  if (sensorValue > threshold) {
+    // If the sensor value is above the threshold, activate the buzzer
+    digitalWrite(buzzerPin, HIGH);
+  } else {
+    // If the sensor value is below the threshold, turn off the buzzer
+    digitalWrite(buzzerPin, LOW);
+  }
+
+  // Add a small delay to avoid excessive readings
+  delay(100);
+}
